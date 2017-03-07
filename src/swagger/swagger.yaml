@@ -21,3 +21,13 @@ paths:
         200:
           description: "Successful response"
       x-swagger-router-controller: "Ping"
+  /runTest:
+    get:
+      tags:
+        - "Test"
+      description: "run test"
+      operationId: "runTest"
+      responses:
+        200:
+          description: "Successful response"
+      x-swagger-router-controller: "RunTest"

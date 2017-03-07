@@ -3,7 +3,7 @@ var http = require('http');
 var swagger = require('./src/swagger/index.js');
 var logger = require('./src/logger.js');
 
-var serverPort = 8001;
+var serverPort = 8002;
 
 var preBootActions = [
 	logger.init(app),
