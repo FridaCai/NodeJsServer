@@ -1,0 +1,23 @@
+---
+swagger: "2.0"
+info:
+  version: "0.0.0"
+  title: "DRE API"
+host: "localhost:8081"
+basePath: "/v1"
+schemes:
+- "http"
+produces:
+- "application/json"
+
+paths:
+  /ping:
+    get:
+      tags:
+      - "Ping"
+      description: "check the web service still alive"
+      operationId: "pingGet"
+      responses:
+        200:
+          description: "Successful response"
+      x-swagger-router-controller: "Ping"
