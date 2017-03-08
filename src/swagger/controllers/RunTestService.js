@@ -5,8 +5,9 @@ var child = require('child_process');
 var fs = require('fs');
 
 
+// curl 10.102.170.127:8001/v1/ping
 const SKIP_DOWNLOAD = true;
-
+const SKIP_INSTALL = true;
 
 exports.runTest = function(args, res, next) {
 	//delete rfq-web.git folder if it exists.
@@ -20,66 +21,44 @@ exports.runTest = function(args, res, next) {
 				res.end(JSON.stringify({
 				  errCode: -1
 				}));
-			}, function(e){throw e;}).catch(function(e){throw e;});
-		}, function(e){throw e;}).catch(function(e){throw e;})
-	}, function(e){throw e;}).catch(function(e){console.log(e);})
+			}, function(e){throw new Error('in reject');}).catch(function(e){throw e;});
+		}, function(e){throw new Error('in reject');}).catch(function(e){throw e;})
+	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
 }
 
 function install(){
 	return new Promise(function(resolve, reject){
+		if(SKIP_INSTALL){
+			logger.info('Install is skipped.');
+			resolve();
+			return;
+		}
+
+		logger.info('logger out execSync result');
+
 		var commands = [];
 		commands.push('cd rfq-web.git');
-		commands.push('npm install --save-dev moment');
+		commands.push('npm install');
 		var command = commands.join(' && ');
 
-		var npm = child.execSync(command).toString();
-		console.log(npm);
-
-		resolve();
+		var npm = child.exec(command);
 
 
-		/*try{
-			var npm = require('npm');	 //config in node_path . work?
-		}catch(e){
-			debugger;
-		}
-		npm.load(function(err) {
-		  logger.error(err);
-		  npm.commands.install(['moment'], function(er, data) { //test moment.
-		    if(er){
-		    	logger.error(er)
-		    }
-		  });
+		npm.stdout.on('data', function (data) { 
+			logger.info('listen to stdout')  ;
+			logger.info(data.toString());
+		});
 
-		  npm.on('log', function(message) {
-		    // log installation progress
-		    console.log(message);
-		  });
-		});*/
+		npm.stderr.on('data', function (data) {   
+			logger.info('listen to stderr')  ;
+			logger.info(data.toString());
+		});
+
+		npm.on('close', function (code) { 
+			logger.info("Finished with code " + code);
+			resolve();
+		});
 	});
-		
-
-
-	//var npm = require('npm');
-	//console.log(npm);
-
-
-/*
-			var npm = require('npm');
-			npm.load(function(err) {
-			  // handle errors
-
-			  // install module ffi
-			  npm.commands.install(['ffi'], function(er, data) {
-			    // log errors or data
-			  });
-
-			  npm.on('log', function(message) {
-			    // log installation progress
-			    console.log(message);
-			  });
-			});
-*/
 }
 
 function download(){
@@ -125,20 +104,35 @@ function download(){
 function test(){
 	//run test.
 	return new Promise(function(resolve, reject){
+		logger.info('Start to run test');
 
 		var commands = [];
 		commands.push('cd rfq-web.git');
-		commands.push('pwd');
-		command.push('gulp.cmd test');
+
+		//todo: modify it to test_windows.
+		
+		commands.push('cp -r ../asset/.selenium/* node_modules/web-component-tester/node_modules/wct-local/node_modules/selenium-standalone/.selenium')
+		commands.push('gulp.cmd test'); 
 
 		var command = commands.join(' && ');
 
-		require('child_process').exec(command, function (error, stdout, stderr) {
-			console.log(error);
-			console.log(stdout);
-			console.log(stderr);
+		var testRunner = child.exec(command);
+
+
+		testRunner.stdout.on('data', function (data) {   
+			logger.info('test runner stdout');
+			logger.info(data.toString());
 		});
 
+		testRunner.stderr.on('data', function (data) {   
+			logger.info('test runner stderr');
+			logger.info(data.toString());
+		});
+
+		testRunner.on('close', function (code) { 
+			logger.info("Finished with code " + code);
+			resolve();
+		});
 
 		
 
@@ -164,20 +158,6 @@ function test(){
 		//var testRunner = child.spawnSync('gulp.cmd', ['test'], {env: env});
 
 
-		/*testRunner.stdout.on('data', function (data) {   
-			console.log(data.toString());
-			logger.info(data.toString());
-		});
-
-		testRunner.stderr.on('data', function (data) {   
-			console.log(data.toString());
-			logger.info(data.toString());
-		});
-
-		testRunner.on('close', function (code) { 
-			console.log("Finished with code " + code);
-			logger.info("Finished with code " + code);
-		});*/
 	})
 	
 }
