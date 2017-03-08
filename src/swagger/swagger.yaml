@@ -31,3 +31,13 @@ paths:
         200:
           description: "Successful response"
       x-swagger-router-controller: "RunTest"
+  /getReport:
+    get:
+      tags:
+        - "Report"
+      description: "get report"
+      operationId: "getReport"
+      responses:
+        200:
+          description: "Successful response"
+      x-swagger-router-controller: "GetReport"
