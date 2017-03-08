@@ -6,14 +6,13 @@ var fs = require('fs');
 
 
 // curl 10.102.170.127:8001/v1/ping
-const SKIP_DOWNLOAD = true;
-const SKIP_INSTALL = true;
+const SKIP_DOWNLOAD = false;
+const SKIP_INSTALL = false;
+
+const SELENIUM_FOLDER_SRC = '../asset/.selenium/*';
+const SELENIUM_FOLDER_DES = 'node_modules/web-component-tester/node_modules/wct-local/node_modules/selenium-standalone/.selenium';
 
 exports.runTest = function(args, res, next) {
-	//delete rfq-web.git folder if it exists.
-	//download code.
-	//run test.
-	//return success or fail.
 	download().then(function(){
 		install().then(function(){
 			test().then(function(){
@@ -26,6 +25,30 @@ exports.runTest = function(args, res, next) {
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
 }
 
+function _runCommand(commands, resolve, reject){
+	var command = commands.join(' && ');
+
+	var exec = child.exec(command);
+
+
+	exec.stdout.on('data', function (data) { 
+		logger.info(data.toString());
+	});
+
+	exec.stderr.on('data', function (data) {   
+		logger.info(data.toString());
+	});
+
+	exec.on('close', function (code) { 
+		if(code){ //not 0
+			reject('exist code is not 0');
+		}else{
+			resolve();
+		}
+	});
+}
+
+
 function install(){
 	return new Promise(function(resolve, reject){
 		if(SKIP_INSTALL){
@@ -34,30 +57,12 @@ function install(){
 			return;
 		}
 
-		logger.info('logger out execSync result');
-
-		var commands = [];
-		commands.push('cd rfq-web.git');
-		commands.push('npm install');
-		var command = commands.join(' && ');
-
-		var npm = child.exec(command);
-
-
-		npm.stdout.on('data', function (data) { 
-			logger.info('listen to stdout')  ;
-			logger.info(data.toString());
-		});
-
-		npm.stderr.on('data', function (data) {   
-			logger.info('listen to stderr')  ;
-			logger.info(data.toString());
-		});
-
-		npm.on('close', function (code) { 
-			logger.info("Finished with code " + code);
-			resolve();
-		});
+		logger.info('Start to Install.');
+		var commands = [
+			'cd rfq-web.git',
+			'npm install'
+		];
+		_runCommand(commands, resolve, reject);
 	});
 }
 
@@ -85,18 +90,21 @@ function download(){
 			return;
 		}
 
-
+		
+		logger.info("Clear folder.");
 		child.execSync(`rm -rf ${path}`, function (err) {
-	        console.log(err);
+	        logger.error(err.stack);
 	    });
 
 
+		logger.info("Start to download repository.");
 		download(options, function(err, tarfile) {
 			if (err) {
 				logger.error(err.stack);
 				reject();
 			}
 			logger.info(`Download source code successfully. branch: ${branch}`);
+			resolve();
 		})
 	});
 }
@@ -106,60 +114,13 @@ function test(){
 	return new Promise(function(resolve, reject){
 		logger.info('Start to run test');
 
-		var commands = [];
-		commands.push('cd rfq-web.git');
+		var commands = [
+			'cd rfq-web.git',
+			`cp -r ${SELENIUM_FOLDER_SRC} ${SELENIUM_FOLDER_DES}`,
+			'gulp test' //todo: modify it to test_windows.
+		];
 
-		//todo: modify it to test_windows.
-		
-		commands.push('cp -r ../asset/.selenium/* node_modules/web-component-tester/node_modules/wct-local/node_modules/selenium-standalone/.selenium')
-		commands.push('gulp.cmd test'); 
-
-		var command = commands.join(' && ');
-
-		var testRunner = child.exec(command);
-
-
-		testRunner.stdout.on('data', function (data) {   
-			logger.info('test runner stdout');
-			logger.info(data.toString());
-		});
-
-		testRunner.stderr.on('data', function (data) {   
-			logger.info('test runner stderr');
-			logger.info(data.toString());
-		});
-
-		testRunner.on('close', function (code) { 
-			logger.info("Finished with code " + code);
-			resolve();
-		});
-
-		
-
-		//var testRunner = child.spawnSync('gulp test', [], {stdio:[0,1,2], env:env});	
-
-		//console.log('============================ check env ============================');
-		//console.log(process.env);
-
-
-		//var env = process.env;
-		//env.GOOS = 'linux';
-		//env.GOARCH = 'amd64';
-
-		//var testRunner = child.spawn('c/nodejs/gulp', ['-h'], {
-			//env: env
-		//});
-
-		//var pwd = child.spawnSync('pwd');
-		//console.log(pwd.stdout.toString());
-
-
-
-		//var testRunner = child.spawnSync('gulp.cmd', ['test'], {env: env});
-
-
+		_runCommand(commands, resolve, reject);
 	})
 	
 }
-
-
