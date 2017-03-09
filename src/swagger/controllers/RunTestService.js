@@ -1,9 +1,17 @@
 'use strict';
 
-var logger = require('../../logger.js').logger('normal');
+//var logger = require('../../logger.js').logger('normal');
+
+var log4js = require('log4js');
+
+
+
+
+
+
 var child = require('child_process');
 var fs = require('fs');
-
+var path = require('path');
 
 // curl 10.102.170.127:8001/v1/ping
 const SKIP_DOWNLOAD = false;
@@ -12,27 +20,94 @@ const SKIP_INSTALL = false;
 const SELENIUM_FOLDER_SRC = '../asset/.selenium/*';
 const SELENIUM_FOLDER_DES = 'node_modules/web-component-tester/node_modules/wct-local/node_modules/selenium-standalone/.selenium';
 
+
+
+const DEFAULT_BRANCH = 'feature/UnitTests_unmature';
+
+const SITE_ROOT = 'http://10.102.170.127:8002/v1/getReport'; //can we get it automatically?
+
+var uuid;
+var logger;
+
 exports.runTest = function(args, res, next) {
+	uuid = require('uuid/v1')();
+	
+	//for test.
+	uuid = '';
+
+	log4js.loadAppender('file');
+	log4js.addAppender(log4js.appenders.file(`logs/all_${uuid}.log`), `log_${uuid}`);
+	logger = log4js.getLogger(`log_${uuid}`);
+
+
+
+	//clearReport();
 	download().then(function(){
-		install().then(function(){
-			test().then(function(){
+		
+		install_localcopy().then(function(){
+
+			test().then(function(endtoendTestReport){
+				copyReport(endtoendTestReport);
+
 				res.setHeader('Content-Type', 'application/json;charset=UTF-8');
 				res.end(JSON.stringify({
-				  errCode: -1
-				}));
+				  errCode: -1,
+				  data: {
+				  	reportUrl: `${SITE_ROOT}/${uuid}`
+				  }
+				}));	
 			}, function(e){throw new Error('in reject');}).catch(function(e){throw e;});
 		}, function(e){throw new Error('in reject');}).catch(function(e){throw e;})
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
 }
 
-function _runCommand(commands, resolve, reject){
-	var command = commands.join(' && ');
+function install_localcopy(){
+	const INSTALL_PATH_SRC = 'asset/node_modules';
+	const INSTALL_PATH_DES = 'codebase/rfq-web.git_${uuid}';
+	child.execSync(
+		`cp -r ${INSTALL_PATH_SRC} ${INSTALL_PATH_DES}`,
+		function(err){logger.error(err.stack);}
+	)
+}
 
+function clearReport(){
+	var reportPath = `${REPORT_PATH_DES}/*`;
+
+	//todo: 
+	child.execSync(`rm -rf ${reportPath}`, function (err) {
+    	logger.error(err.stack);
+    });
+}
+
+function copyReport(endtoendTestReport){
+	const REPORT_PATH_SRC = `codebase/rfq-web.git_${uuid}/coverage`;
+	const REPORT_PATH_DES = `asset/static/report_${uuid}`;
+
+	var commands = [
+		`mkdir ${REPORT_PATH_DES}`,
+		`cp -r ${REPORT_PATH_SRC} ${REPORT_PATH_DES}`
+	];
+
+	child.execSync(commands, function (err) {logger.error(err.stack)});
+
+	(function generateEnd2EndReport(){
+		var filename = '${REPORT_PATH_DES}/end2end_report.html';
+		fs.writeFile(filename, endtoendTestReport, (err) => {
+		  if(err){
+		  	logger.error(err.stack);
+		  }
+		});
+	})()
+}
+
+function _runCommand(commands, resolve, reject, stdoutCallback){
+	var command = commands.join(' && ');
 	var exec = child.exec(command);
 
-
 	exec.stdout.on('data', function (data) { 
-		logger.info(data.toString());
+		var log = data.toString();
+		logger.info(log);
+		stdoutCallback && stdoutCallback(log);
 	});
 
 	exec.stderr.on('data', function (data) {   
@@ -48,7 +123,6 @@ function _runCommand(commands, resolve, reject){
 	});
 }
 
-
 function install(){
 	return new Promise(function(resolve, reject){
 		if(SKIP_INSTALL){
@@ -59,7 +133,7 @@ function install(){
 
 		logger.info('Start to Install.');
 		var commands = [
-			'cd rfq-web.git',
+			`cd codebase/rfq-web.git_${uuid}`,
 			'npm install'
 		];
 		_runCommand(commands, resolve, reject);
@@ -67,8 +141,8 @@ function install(){
 }
 
 function download(){
-	var branch = 'feature/UnitTests_unmature';
-	var path = 'rfq-web.git';
+	var branch = DEFAULT_BRANCH;
+	var path = `codebase/rfq-web.git_${uuid}`;
 
 	var options = {
 	  // Remote source location (no github sources)
@@ -82,17 +156,20 @@ function download(){
 	};
 
 	var download = require('git-download');
-
 	return new Promise(function(resolve, reject){
 		if(SKIP_DOWNLOAD){
 			logger.info('Download is skipped.');
 			resolve();
 			return;
 		}
-
 		
-		logger.info("Clear folder.");
+		/*logger.info("Clear folder.");
 		child.execSync(`rm -rf ${path}`, function (err) {
+	        logger.error(err.stack);
+	    });*/
+
+	    //create folder
+	    child.execSync(`mkdir ${path}`, function (err) {
 	        logger.error(err.stack);
 	    });
 
@@ -110,17 +187,24 @@ function download(){
 }
 
 function test(){
-	//run test.
+	var endtoendTestReport = '';
+
 	return new Promise(function(resolve, reject){
 		logger.info('Start to run test');
-
 		var commands = [
-			'cd rfq-web.git',
-			`cp -r ${SELENIUM_FOLDER_SRC} ${SELENIUM_FOLDER_DES}`,
+			`cd codebase/rfq-web.git_${uuid}`,
+			//`cp -r ${SELENIUM_FOLDER_SRC} ${SELENIUM_FOLDER_DES}`, //copy the whold node modules since npm install is too slow.
 			'gulp test' //todo: modify it to test_windows.
 		];
 
-		_runCommand(commands, resolve, reject);
+		function stdoutCallback(data){
+			if(data.indexOf('✖') != -1 || data.indexOf('✓') != -1){
+				endtoendTestReport = endtoendTestReport + data + '\n';
+			}
+		}
+
+		_runCommand(commands, function(){
+			resolve(endtoendTestReport);
+		}, reject, stdoutCallback);
 	})
-	
 }

@@ -19,5 +19,7 @@
     "node-debug": "^0.1.0",
     "swagger-tools": "0.10.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "uuid": "^3.0.1"
+  }
 }
