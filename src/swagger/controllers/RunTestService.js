@@ -1,12 +1,7 @@
 'use strict';
 
-//var logger = require('../../logger.js').logger('normal');
 
 var log4js = require('log4js');
-
-
-
-
 
 
 var child = require('child_process');
@@ -17,7 +12,7 @@ var path = require('path');
 const SKIP_DOWNLOAD = false;
 const SKIP_INSTALL = false;
 
-const SELENIUM_FOLDER_SRC = '../asset/.selenium/*';
+const SELENIUM_FOLDER_SRC = '../../asset/.selenium/*';
 const SELENIUM_FOLDER_DES = 'node_modules/web-component-tester/node_modules/wct-local/node_modules/selenium-standalone/.selenium';
 
 
@@ -30,44 +25,59 @@ var uuid;
 var logger;
 
 exports.runTest = function(args, res, next) {
-	uuid = require('uuid/v1')();
-	
-	//for test.
-	uuid = '';
+	uuid = require('uuid/v1')().replace(/-/g, ''); //mkdir fail with - contained in folder name.
+
 
 	log4js.loadAppender('file');
 	log4js.addAppender(log4js.appenders.file(`logs/all_${uuid}.log`), `log_${uuid}`);
 	logger = log4js.getLogger(`log_${uuid}`);
 
 
+	res.setHeader('Content-Type', 'application/json;charset=UTF-8');
+	res.end(JSON.stringify({
+	  errCode: -1,
+	  data: {
+	  	reportUrl: `${SITE_ROOT}/${uuid}`
+	  }
+	}));	
+
 
 	//clearReport();
 	download().then(function(){
-		
-		install_localcopy().then(function(){
-
+		install().then(function(){
 			test().then(function(endtoendTestReport){
 				copyReport(endtoendTestReport);
 
-				res.setHeader('Content-Type', 'application/json;charset=UTF-8');
-				res.end(JSON.stringify({
-				  errCode: -1,
-				  data: {
-				  	reportUrl: `${SITE_ROOT}/${uuid}`
-				  }
-				}));	
-			}, function(e){throw new Error('in reject');}).catch(function(e){throw e;});
+				
+
+			}, function(e){throw new Error('in reject');}).catch(function(e){throw e;})
 		}, function(e){throw new Error('in reject');}).catch(function(e){throw e;})
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
 }
 
 function install_localcopy(){
-	const INSTALL_PATH_SRC = 'asset/node_modules';
-	const INSTALL_PATH_DES = 'codebase/rfq-web.git_${uuid}';
-	child.execSync(
-		`cp -r ${INSTALL_PATH_SRC} ${INSTALL_PATH_DES}`,
-		function(err){logger.error(err.stack);}
-	)
+	return new Promise(function(resolve, reject){
+		logger.info('Start Local Resource');
+
+		const INSTALL_PATH_SRC = 'asset/node_modules';
+		const INSTALL_PATH_DES = `codebase/rfq-web.git_${uuid}`;
+
+		var result;
+		try{
+			result = child.execSync(
+				`cp -r ${INSTALL_PATH_SRC} ${INSTALL_PATH_DES}`,
+				function(err){logger.error(err.stack);}
+			)	
+			logger.info(result);
+		}catch(e){
+			logger.error(e.stack);
+		}
+		
+		logger.info('Copy Local Resource successfully');
+
+		resolve();
+	})
+	
 }
 
 function clearReport(){
@@ -83,15 +93,16 @@ function copyReport(endtoendTestReport){
 	const REPORT_PATH_SRC = `codebase/rfq-web.git_${uuid}/coverage`;
 	const REPORT_PATH_DES = `asset/static/report_${uuid}`;
 
+	fs.mkdir(REPORT_PATH_DES);
+
 	var commands = [
-		`mkdir ${REPORT_PATH_DES}`,
 		`cp -r ${REPORT_PATH_SRC} ${REPORT_PATH_DES}`
 	];
 
 	child.execSync(commands, function (err) {logger.error(err.stack)});
 
 	(function generateEnd2EndReport(){
-		var filename = '${REPORT_PATH_DES}/end2end_report.html';
+		var filename = `${REPORT_PATH_DES}/end2end_report.html`;
 		fs.writeFile(filename, endtoendTestReport, (err) => {
 		  if(err){
 		  	logger.error(err.stack);
@@ -125,6 +136,10 @@ function _runCommand(commands, resolve, reject, stdoutCallback){
 
 function install(){
 	return new Promise(function(resolve, reject){
+		//no need to install. use global wct.
+		resolve();
+		return;
+
 		if(SKIP_INSTALL){
 			logger.info('Install is skipped.');
 			resolve();
@@ -134,7 +149,8 @@ function install(){
 		logger.info('Start to Install.');
 		var commands = [
 			`cd codebase/rfq-web.git_${uuid}`,
-			'npm install'
+			'npm install web-component-tester@4.3.1',
+			'npm install web-component-tester-istanbul@0.10.0'
 		];
 		_runCommand(commands, resolve, reject);
 	});
@@ -142,7 +158,7 @@ function install(){
 
 function download(){
 	var branch = DEFAULT_BRANCH;
-	var path = `codebase/rfq-web.git_${uuid}`;
+	var path = 'codebase/rfq-web.git_' + uuid;
 
 	var options = {
 	  // Remote source location (no github sources)
@@ -168,21 +184,24 @@ function download(){
 	        logger.error(err.stack);
 	    });*/
 
-	    //create folder
-	    child.execSync(`mkdir ${path}`, function (err) {
-	        logger.error(err.stack);
-	    });
+
+
 
 
 		logger.info("Start to download repository.");
-		download(options, function(err, tarfile) {
-			if (err) {
-				logger.error(err.stack);
-				reject();
-			}
-			logger.info(`Download source code successfully. branch: ${branch}`);
-			resolve();
-		})
+		try{
+			download(options, function(err, tarfile) {
+				if (err) {
+					logger.error(err.stack);
+					reject();
+				}
+				logger.info(`Download source code successfully. branch: ${branch}`);
+				resolve();
+			})	
+		}catch(e){
+			reject(e.stack);
+		}
+		
 	});
 }
 
@@ -193,8 +212,8 @@ function test(){
 		logger.info('Start to run test');
 		var commands = [
 			`cd codebase/rfq-web.git_${uuid}`,
-			//`cp -r ${SELENIUM_FOLDER_SRC} ${SELENIUM_FOLDER_DES}`, //copy the whold node modules since npm install is too slow.
-			'gulp test' //todo: modify it to test_windows.
+			`cp -r ${SELENIUM_FOLDER_SRC} ${SELENIUM_FOLDER_DES}`, //copy the whold node modules since npm install is too slow.
+			'wct' //todo: modify it to test_windows.
 		];
 
 		function stdoutCallback(data){
