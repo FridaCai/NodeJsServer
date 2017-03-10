@@ -8,6 +8,8 @@ var child = require('child_process');
 var fs = require('fs');
 var path = require('path');
 
+const DEFAULT_BRANCH = 'feature/UnitTests_unmature';
+
 // curl 10.102.170.127:8001/v1/ping
 const SKIP_DOWNLOAD = false;
 const SKIP_INSTALL = false;
@@ -15,11 +17,7 @@ const SKIP_INSTALL = false;
 const SELENIUM_FOLDER_SRC = '../../asset/.selenium/*';
 const SELENIUM_FOLDER_DES = 'node_modules/web-component-tester/node_modules/wct-local/node_modules/selenium-standalone/.selenium';
 
-
-
-const DEFAULT_BRANCH = 'feature/UnitTests_unmature';
-
-const SITE_ROOT = 'http://10.102.170.127:8002/v1/getReport'; //can we get it automatically?
+const SITE_ROOT = 'http://10.102.170.127:8002/'; //can we get it automatically?
 
 var uuid;
 var logger;
@@ -35,22 +33,14 @@ exports.runTest = function(args, res, next) {
 
 	res.setHeader('Content-Type', 'application/json;charset=UTF-8');
 	res.end(JSON.stringify({
-	  errCode: -1,
-	  data: {
-	  	reportUrl: `${SITE_ROOT}/${uuid}`
-	  }
+	  url: `${SITE_ROOT}v1/getReport/${uuid}`
 	}));	
 
 
 	//clearReport();
 	download().then(function(){
 		install().then(function(){
-			test().then(function(endtoendTestReport){
-				copyReport(endtoendTestReport);
-
-				
-
-			}, function(e){throw new Error('in reject');}).catch(function(e){throw e;})
+			test();
 		}, function(e){throw new Error('in reject');}).catch(function(e){throw e;})
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
 }
@@ -90,10 +80,14 @@ function clearReport(){
 }
 
 function copyReport(endtoendTestReport){
+
 	const REPORT_PATH_SRC = `codebase/rfq-web.git_${uuid}/coverage`;
 	const REPORT_PATH_DES = `asset/static/report_${uuid}`;
 
-	fs.mkdir(REPORT_PATH_DES);
+	if(!fs.existsSync(REPORT_PATH_DES)){
+		fs.mkdir(REPORT_PATH_DES);
+	}
+	
 
 	var commands = [
 		`cp -r ${REPORT_PATH_SRC} ${REPORT_PATH_DES}`
@@ -179,15 +173,6 @@ function download(){
 			return;
 		}
 		
-		/*logger.info("Clear folder.");
-		child.execSync(`rm -rf ${path}`, function (err) {
-	        logger.error(err.stack);
-	    });*/
-
-
-
-
-
 		logger.info("Start to download repository.");
 		try{
 			download(options, function(err, tarfile) {
@@ -201,7 +186,6 @@ function download(){
 		}catch(e){
 			reject(e.stack);
 		}
-		
 	});
 }
 
@@ -212,7 +196,7 @@ function test(){
 		logger.info('Start to run test');
 		var commands = [
 			`cd codebase/rfq-web.git_${uuid}`,
-			`cp -r ${SELENIUM_FOLDER_SRC} ${SELENIUM_FOLDER_DES}`, //copy the whold node modules since npm install is too slow.
+		//	`cp -r ${SELENIUM_FOLDER_SRC} ${SELENIUM_FOLDER_DES}`, //copy the whold node modules since npm install is too slow.
 			'wct' //todo: modify it to test_windows.
 		];
 
@@ -223,6 +207,7 @@ function test(){
 		}
 
 		_runCommand(commands, function(){
+			logger.info('Run test successfully');
 			resolve(endtoendTestReport);
 		}, reject, stdoutCallback);
 	})
