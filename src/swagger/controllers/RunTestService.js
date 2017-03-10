@@ -8,7 +8,7 @@ var child = require('child_process');
 var fs = require('fs');
 var path = require('path');
 
-const DEFAULT_BRANCH = 'feature/UnitTests_unmature';
+const DEFAULT_BRANCH = 'release/release7';
 
 // curl 10.102.170.127:8001/v1/ping
 const SKIP_DOWNLOAD = false;
@@ -24,7 +24,7 @@ var logger;
 
 exports.runTest = function(args, res, next) {
 	uuid = require('uuid/v1')().replace(/-/g, ''); //mkdir fail with - contained in folder name.
-
+	var branch = args.branchname.value;
 
 	log4js.loadAppender('file');
 	log4js.addAppender(log4js.appenders.file(`logs/all_${uuid}.log`), `log_${uuid}`);
@@ -38,10 +38,8 @@ exports.runTest = function(args, res, next) {
 
 
 	//clearReport();
-	download().then(function(){
-		install().then(function(){
-			test();
-		}, function(e){throw new Error('in reject');}).catch(function(e){throw e;})
+	download(branch).then(function(){
+		test();
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
 }
 
@@ -150,8 +148,8 @@ function install(){
 	});
 }
 
-function download(){
-	var branch = DEFAULT_BRANCH;
+function download(_branch){
+	var branch = _branch || DEFAULT_BRANCH ;
 	var path = 'codebase/rfq-web.git_' + uuid;
 
 	var options = {
@@ -196,6 +194,7 @@ function test(){
 		logger.info('Start to run test');
 		var commands = [
 			`cd codebase/rfq-web.git_${uuid}`,
+			`rm -rf coverage/*`,
 		//	`cp -r ${SELENIUM_FOLDER_SRC} ${SELENIUM_FOLDER_DES}`, //copy the whold node modules since npm install is too slow.
 			'wct' //todo: modify it to test_windows.
 		];
