@@ -6,6 +6,7 @@ var logger = require('./src/logger.js');
 
 
 var serverPort = 8002;
+global.serverPort = 8002;
 
 var preBootActions = [
 	logger.init(app),

@@ -6,8 +6,8 @@ var path = require('path');
 exports.getReport = function(args, res, next){
 	var uuid = args.uuid.value;
 	var report = `/rfq-web.git_${uuid}/coverage/lcov-report/index.html`;
+	var checkPath = path.resolve('') + `/codebase` + report;
 
-	var checkPath = path.resolve('') + `/codebase` + report
 	if(fs.existsSync(checkPath)){
 		res.redirect(report);
 	}else{
