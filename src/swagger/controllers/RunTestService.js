@@ -80,6 +80,7 @@ function test(){
 		];
 		
 		try{
+			util.setLogger(logger);
 			var result = util.runCommand(commands, function(){
 				logger.info('Run test successfully');
 			}, reject);

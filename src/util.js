@@ -1,7 +1,11 @@
 var child = require('child_process');
+var logger = require('./logger').logger('normal');
 
+exports.setLogger = function(_logger){
+	logger = _logger;
+}
 exports.runCommand = function(commands, resolve, reject, stdoutCallback) {
-	var logger = require('./logger').logger('normal');
+	
 	var command = commands.join(' && ');
 
 	try{
