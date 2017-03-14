@@ -4,6 +4,7 @@ var log4js = require('log4js');
 var child = require('child_process');
 var fs = require('fs');
 var path = require('path');
+var util = require('../../util');
 
 const DEFAULT_BRANCH = 'release/release7';
 const SKIP_DOWNLOAD = false;
@@ -28,42 +29,6 @@ exports.runTest = function(args, res, next) {
 	download(branch).then(function(){
 		test();
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
-}
-
-function _runCommand(commands, resolve, reject, stdoutCallback){
-	var command = commands.join(' && ');
-
-	try{
-		var exec = child.exec(command, {}, function(err, stdout, stderr){
-			err && logger.error(`runcmd_err: ${err.stack}` );
-			logger.info(`runcmd_stdout: ${stdout.toString()}`);
-			logger.info(`runcmd_stderr: ${stderr.toString()}`);
-		});	
-		logger.info(exec);
-	}catch(e){
-		logger.error(e.stack);
-	}
-	
-
-	exec.stdout.on('data', function (data) { 
-		var log = data.toString();
-		logger.info(log);
-		stdoutCallback && stdoutCallback(log);
-	});
-
-	exec.stderr.on('data', function (data) {   
-		logger.info(data.toString());
-	});
-
-	exec.on('close', function (code) { 
-		if(code){ 
-			logger.error('exist code is not 0')
-			reject('exist code is not 0');
-		}else{
-			logger.info('exist code is 0');
-			resolve();
-		}
-	});
 }
 
 function download(_branch){
@@ -115,7 +80,7 @@ function test(){
 		];
 		
 		try{
-			var result = _runCommand(commands, function(){
+			var result = util.runCommand(commands, function(){
 				logger.info('Run test successfully');
 			}, reject);
 			logger.info(result);
