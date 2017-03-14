@@ -9,7 +9,12 @@ module.exports = {
       var j = schedule.scheduleJob('5 * * * * *', function(){
         try{
           //var commands = ['find ./ -maxdepth 1 -type d -mtime +7 | rm -rf *'];
-          var commands = ['find ./codebase/* -name "rfq-web.git*" -maxdepth 1 -type d -mmin +1 | rm -rf *'];
+          var commands = [
+            `find codebase/* -maxdepth 1 -name "rfq-web.git*"  -type d -mmin +0 -exec sh -c "rm -rf '{}'" \;`
+          ];
+
+
+
           util.runCommand(commands);
           logger.info('Clear work...');
         }catch(e){
@@ -19,4 +24,4 @@ module.exports = {
       });
   }
 }
-  
+module.exports.run();
