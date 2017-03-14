@@ -22,17 +22,17 @@ paths:
           description: "Successful response"
       x-swagger-router-controller: "Ping"
 
-  /runTest/{branchname}:
+  /runTest:
     get:
       tags:
         - "Test"
       description: "run test"
       operationId: "runTest"
       parameters: 
-      - name: branchname
-        in: path
-        description: "branchname"
-        required: true
+      - name: branch
+        in: query
+        description: "branch"
+        required: false
         type: "string"
       responses:
         200:
@@ -55,3 +55,20 @@ paths:
         200:
           description: "Successful response"
       x-swagger-router-controller: "GetReport"
+
+  /getLog/{uuid}:
+    get:
+      tags:
+        - "Log"
+      description: "get log"
+      operationId: "getLog"
+      parameters:
+      - name: uuid
+        in: path
+        description: "uuid"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Successful response"
+      x-swagger-router-controller: "GetLog"

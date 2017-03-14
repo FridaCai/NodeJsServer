@@ -11,7 +11,7 @@ exports.getReport = function(args, res, next){
 	if(fs.existsSync(checkPath)){
 		res.redirect(report);
 	}else{
-		var log = path.resolve('') + `/logs/all_${uuid}.log`;
-	    res.sendFile(log);
+		var log = `/v1/getLog/${uuid}`;
+		res.redirect(log);
 	}
 }

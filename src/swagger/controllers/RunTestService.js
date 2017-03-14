@@ -13,7 +13,7 @@ var logger;
 
 exports.runTest = function(args, res, next) {
 	uuid = require('uuid/v1')().replace(/-/g, ''); 
-	var branch = args.branchname.value;
+	var branch = args.branch.value;
 
 	log4js.loadAppender('file');
 	log4js.addAppender(log4js.appenders.file(`logs/all_${uuid}.log`), `log_${uuid}`);
