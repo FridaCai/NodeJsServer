@@ -9,7 +9,7 @@ exports.runCommand = function(commands, resolve, reject, stdoutCallback) {
 	var command = commands.join(' && ');
 
 	try{
-		var exec = child.exec(command, {}, function(err, stdout, stderr){
+		var exec = child.exec(command, {maxBuffer : 1024 * 1024}, function(err, stdout, stderr){
 			err && logger.error(`runcmd_err: ${err.stack}` );
 			logger.info(`runcmd_stdout: ${stdout.toString()}`);
 			logger.info(`runcmd_stderr: ${stderr.toString()}`);

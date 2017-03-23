@@ -27,10 +27,22 @@ exports.runTest = function(args, res, next) {
 
 
 	download(branch).then(function(){
+		copyNodeModules();
 		test();
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
 }
+function copyNodeModules(){
+	const NODE_MODULES_PATH_SRC = 'asset/node_modules';
+	const NODE_MODULES_PATH_DESC = `codebase/rfq-web.git_${uuid}`;
 
+
+	var commands = [
+		`cp -r ${NODE_MODULES_PATH_SRC} ${NODE_MODULES_PATH_DESC}`
+	];
+
+	child.execSync(commands, function (err) {logger.error(err.stack)});
+
+}
 function download(_branch){
 	var branch = _branch || DEFAULT_BRANCH ;
 	var path = `codebase/rfq-web.git_${uuid}`;
