@@ -7,8 +7,9 @@ var path = require('path');
 var AdmZip = require('adm-zip');
 
 exports.upload = function(args, res, next){
-	//var uuid = args.uuid.value;
-	var uuid = '3f36523011ef11e7945445934c3cf2a9';
+	var uuid = args.uuid.value;
+	//var uuid = '827fa780145111e7881947bcab915998';
+
 	
 	var log = fs.createReadStream(`logs/all_${uuid}.log`);
 
@@ -23,16 +24,16 @@ exports.upload = function(args, res, next){
 		log: log,
 		report: report,
 	}
-	var url = 'http://localhost:8003/v1/upload';
+
+	var testService = global.testService;
+	var url = `${testService}/upload`;
 	var req = request.post({
 		url: url,
 		formData: formData	
-	}, function (err, resp, body) {
-	  if (err) {
-	    console.log('Error!');
-	  } else {
-	    console.log('URL: ' + body);
-	  }
+	}, function (e, resp, body) {
+	  if (e) {
+	    logger.error(e.stack);
+	  } 
 
 	  res.end(JSON.stringify({
 		  errCode: -1,

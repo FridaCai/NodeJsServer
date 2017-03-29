@@ -21,9 +21,10 @@
     "node-debug": "^0.1.0",
     "node-schedule": "^1.2.1",
     "request": "^2.81.0",
-    "swagger-tools": "0.10.1"
+    "swagger-tools": "0.10.1",
+    "uuid": "^3.0.1"
   },
   "devDependencies": {
-    "uuid": "^3.0.1"
+    
   }
 }

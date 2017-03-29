@@ -6,7 +6,8 @@ var logger = require('./src/logger.js');
 var schedule = require('./src/schedule.js');
 
 
-global.serverPort = 8002;
+global.serverPort = 8004; //8004 is port for debug.
+global.testService = 'http://localhost:8003/v1';
 
 var preBootActions = [
 	logger.init(app),

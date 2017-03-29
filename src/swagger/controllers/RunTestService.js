@@ -5,32 +5,36 @@ var child = require('child_process');
 var fs = require('fs');
 var path = require('path');
 var util = require('../../util');
+var UploadService = require('./UploadService');
 
 
 const DEFAULT_BRANCH = 'release/release7';
 const SKIP_DOWNLOAD = false;
+const SKIP_TEST = false;
 
 var uuid;
 var logger;
 
 exports.runTest = function(args, res, next) {
-	uuid = require('uuid/v1')().replace(/-/g, ''); 
+	uuid = args.uuid.value;
 	var branch = args.branch.value;
 
 	log4js.loadAppender('file');
 	log4js.addAppender(log4js.appenders.file(`logs/all_${uuid}.log`), `log_${uuid}`);
 	logger = log4js.getLogger(`log_${uuid}`);
 
+
 	res.setHeader('Content-Type', 'application/json;charset=UTF-8');
 	res.end(JSON.stringify({
-	  url: `http://${res.req.headers.host}/v1/getReport/${uuid}`
+//	  url: `http://${res.req.headers.host}/v1/getReport/${uuid}`
+		errCode: -1
 	}));	
 
 
 	download(branch).then(function(){
 		copyNodeModules();
 		test().then(function(){
-			
+			UploadService.upload(args, res, next);
 
 		});
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
@@ -91,9 +95,12 @@ function test(){
 		logger.info('Start to run test');
 		var commands = [
 			`cd codebase/rfq-web.git_${uuid}`,
-			`rm -rf coverage/*`,
-			'wct'
+			`rm -rf coverage/*`
 		];
+
+		if(!SKIP_TEST){
+			commands.push('wct');
+		}
 		
 		try{
 			util.setLogger(logger);

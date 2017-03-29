@@ -22,12 +22,6 @@ paths:
           description: "Successful response"
       x-swagger-router-controller: "Upload"
 
-
-
-
-
-
-
   /ping:
     get:
       tags:
@@ -46,6 +40,11 @@ paths:
       description: "run test"
       operationId: "runTest"
       parameters: 
+      - name: uuid
+        in: query
+        description: "uuid"
+        required: false
+        type: "string"
       - name: branch
         in: query
         description: "branch"
