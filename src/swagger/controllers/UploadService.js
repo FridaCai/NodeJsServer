@@ -14,17 +14,15 @@ exports.upload = function(args, res, next){
 
 	var zip = new AdmZip();
 	zip.addLocalFolder(`codebase/rfq-web.git_${uuid}/coverage`);
-	zip.writeZip("test/files.zip");
-	
+	zip.writeZip(`codebase/rfq-web.git_${uuid}/coverage/report.zip`);
+	var report = fs.createReadStream(`codebase/rfq-web.git_${uuid}/coverage/report.zip`);
 
-	var report = zip.toBuffer();
 
 	var formData = {
 		uuid: uuid,
+		log: log,
 		report: report,
-		log: log
 	}
-
 	var url = 'http://localhost:8003/v1/upload';
 	var req = request.post({
 		url: url,
@@ -35,5 +33,10 @@ exports.upload = function(args, res, next){
 	  } else {
 	    console.log('URL: ' + body);
 	  }
+
+	  res.end(JSON.stringify({
+		  errCode: -1,
+	  }));
+
 	});
 }
