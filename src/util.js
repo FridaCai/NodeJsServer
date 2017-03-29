@@ -11,10 +11,10 @@ exports.runCommand = function(commands, resolve, reject, stdoutCallback) {
 	try{
 		var exec = child.exec(command, {maxBuffer : 1024 * 1024}, function(err, stdout, stderr){
 			err && logger.error(`runcmd_err: ${err.stack}` );
-			logger.info(`runcmd_stdout: ${stdout.toString()}`);
-			logger.info(`runcmd_stderr: ${stderr.toString()}`);
+			//logger.info(`runcmd_stdout: ${stdout.toString()}`);
+			//logger.info(`runcmd_stderr: ${stderr.toString()}`);
 		});	
-		logger.info(exec);
+		//logger.info(exec);
 
 		exec.stdout.on('data', function (data) { 
 			var log = data.toString();

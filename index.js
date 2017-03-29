@@ -5,7 +5,7 @@ var swagger = require('./src/swagger/index.js');
 var logger = require('./src/logger.js');
 var schedule = require('./src/schedule.js');
 
-var serverPort = 8002;
+
 global.serverPort = 8002;
 
 var preBootActions = [
@@ -26,7 +26,7 @@ app.all('*', function (req, res, next) {
 });
 
 Promise.all(preBootActions).then(function(){
-	http.createServer(app).listen(serverPort, function () {
-		logger.logger('normal').info('Start server. Listening on port %d (http://localhost:%d)', serverPort, serverPort);
+	http.createServer(app).listen(global.serverPort, function () {
+		logger.logger('normal').info('Start server. Listening on port %d (http://localhost:%d)', global.serverPort, global.serverPort);
   });
 });

@@ -11,6 +11,23 @@ produces:
 - "application/json"
 
 paths:
+  /upload:
+    get:
+      tags:
+      - "Upload"
+      description: "upload report and log to build machine"
+      operationId: "upload"
+      responses: 
+        200:
+          description: "Successful response"
+      x-swagger-router-controller: "Upload"
+
+
+
+
+
+
+
   /ping:
     get:
       tags:

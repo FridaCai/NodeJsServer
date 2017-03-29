@@ -6,6 +6,7 @@ var fs = require('fs');
 var path = require('path');
 var util = require('../../util');
 
+
 const DEFAULT_BRANCH = 'release/release7';
 const SKIP_DOWNLOAD = false;
 
@@ -28,7 +29,10 @@ exports.runTest = function(args, res, next) {
 
 	download(branch).then(function(){
 		copyNodeModules();
-		test();
+		test().then(function(){
+			
+
+		});
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
 }
 function copyNodeModules(){
@@ -95,8 +99,9 @@ function test(){
 			util.setLogger(logger);
 			var result = util.runCommand(commands, function(){
 				logger.info('Run test successfully');
+				resolve();
 			}, reject);
-			logger.info(result);
+			//logger.info(result);
 		}catch(e){
 			logger.error(e.stack);
 		}
