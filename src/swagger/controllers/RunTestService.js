@@ -34,10 +34,15 @@ exports.runTest = function(args, res, next) {
 	download(branch).then(function(){
 		copyNodeModules();
 		test().then(function(){
-			UploadService.upload(args, res, next);
+			setTimeout(function(){
+				UploadService.uploadUtil(uuid);	
+			}, 5000);
+			
 
 		});
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
+
+	//is test machine return at once? yes. you are correct.
 }
 function copyNodeModules(){
 	const NODE_MODULES_PATH_SRC = 'asset/node_modules';
