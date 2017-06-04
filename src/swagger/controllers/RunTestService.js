@@ -9,14 +9,16 @@ var UploadService = require('./UploadService');
 
 
 const DEFAULT_BRANCH = 'release/release7';
-const SKIP_DOWNLOAD = false;
-const SKIP_TEST = false;
+const SKIP_DOWNLOAD = true;
+const SKIP_TEST = true;
 
 var uuid;
 var logger;
 
 exports.runTest = function(args, res, next) {
-	uuid = args.uuid.value;
+	uuid = require('uuid/v1')().replace(/-/g, '');
+	uuid = '8fed1aa0490e11e785243fa9e1103608';
+
 	var branch = args.branch.value;
 
 	log4js.loadAppender('file');
@@ -26,7 +28,14 @@ exports.runTest = function(args, res, next) {
 
 	res.setHeader('Content-Type', 'application/json;charset=UTF-8');
 	res.end(JSON.stringify({
-//	  url: `http://${res.req.headers.host}/v1/getReport/${uuid}`
+		testService: {
+			report: `http://${res.req.headers.host}/v1/getReport/${uuid}`,
+			log: `http://${res.req.headers.host}/v1/getLog/${uuid}`,
+		},
+		sonarService: {
+			report: `http://${res.req.headers.host}:9000`, //todo: port contained in host?yes.
+			log: `http://${res.req.headers.host}/v1/getLog/${uuid}` //todo
+		},
 		errCode: -1
 	}));	
 
@@ -34,10 +43,25 @@ exports.runTest = function(args, res, next) {
 	download(branch).then(function(){
 		copyNodeModules();
 		test().then(function(){
+
+
+
+
+			
+
+
+			//todo
 			setTimeout(function(){
+				//# send report
+				//# trigger sonar service.
 				UploadService.uploadUtil(uuid);	
 			}, 5000);
 			
+
+
+
+
+
 
 		});
 	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
@@ -97,15 +121,17 @@ function download(_branch){
 
 function test(){
 	return new Promise(function(resolve, reject){
-		logger.info('Start to run test');
+		if(SKIP_TEST){
+			logger.info('Test is skipped.');
+			resolve();
+			return;	
+		}
+		
 		var commands = [
 			`cd codebase/rfq-web.git_${uuid}`,
-			`rm -rf coverage/*`
+			`rm -rf coverage/*`,
+			`wct`
 		];
-
-		if(!SKIP_TEST){
-			commands.push('wct');
-		}
 		
 		try{
 			util.setLogger(logger);

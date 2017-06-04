@@ -1,9 +1,8 @@
----
 swagger: "2.0"
 info:
   version: "0.0.0"
-  title: "DRE API"
-host: "localhost:8081"
+  title: "RATES API"
+host: "localhost:8002"
 basePath: "/v1"
 schemes:
 - "http"
@@ -11,16 +10,16 @@ produces:
 - "application/json"
 
 paths:
-  /upload:
-    get:
-      tags:
-      - "Upload"
-      description: "upload report and log to build machine"
-      operationId: "upload"
-      responses: 
-        200:
-          description: "Successful response"
-      x-swagger-router-controller: "Upload"
+  # /upload:
+  #   get:
+  #     tags:
+  #     - "Upload"
+  #     description: "upload report and log to build machine"
+  #     operationId: "upload"
+  #     responses: 
+  #       200:
+  #         description: "Successful response"
+  #     x-swagger-router-controller: "Upload"
 
   /ping:
     get:
@@ -40,11 +39,6 @@ paths:
       description: "run test"
       operationId: "runTest"
       parameters: 
-      - name: uuid
-        in: query
-        description: "uuid"
-        required: false
-        type: "string"
       - name: branch
         in: query
         description: "branch"

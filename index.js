@@ -6,9 +6,9 @@ var logger = require('./src/logger.js');
 var schedule = require('./src/schedule.js');
 
 
-global.serverPort = 8004; //8004 is port for debug.
-global.testService = 'http://localhost:8003/v1';
-
+global.serverPort = 8002;
+global.sonarService = 'http://localhost:8003/v1';
+	   
 var preBootActions = [
 	logger.init(app),
 	swagger.execute(app),
@@ -28,6 +28,9 @@ app.all('*', function (req, res, next) {
 
 Promise.all(preBootActions).then(function(){
 	http.createServer(app).listen(global.serverPort, function () {
-		logger.logger('normal').info('Start server. Listening on port %d (http://localhost:%d)', global.serverPort, global.serverPort);
+		logger.logger('normal').info(
+			'Start server. Listening on port %d (http://localhost:%d)', 
+			global.serverPort, 
+			global.serverPort);
   });
 });
