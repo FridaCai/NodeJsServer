@@ -5,21 +5,20 @@ var child = require('child_process');
 var fs = require('fs');
 var path = require('path');
 var util = require('../../util');
-var UploadService = require('./UploadService');
 
-
+const REPO = 'ssh://git@cedt-icg-bitbucketcli.nam.nsroot.net:7999/rfq/rfq-web.git';
 const DEFAULT_BRANCH = 'release/release7';
-const SKIP_DOWNLOAD = true;
-const SKIP_TEST = true;
+const SKIP_DOWNLOAD = false;
+const SKIP_TEST = false;
 
 var uuid;
+var branch;
 var logger;
 
 exports.runTest = function(args, res, next) {
 	uuid = require('uuid/v1')().replace(/-/g, '');
-	uuid = '8fed1aa0490e11e785243fa9e1103608';
 
-	var branch = args.branch.value;
+	branch = args.branch.value || DEFAULT_BRANCH;
 
 	log4js.loadAppender('file');
 	log4js.addAppender(log4js.appenders.file(`logs/all_${uuid}.log`), `log_${uuid}`);
@@ -33,45 +32,83 @@ exports.runTest = function(args, res, next) {
 			log: `http://${res.req.headers.host}/v1/getLog/${uuid}`,
 		},
 		sonarService: {
-			report: `http://${res.req.headers.host}:9000`, //todo: port contained in host?yes.
-			log: `http://${res.req.headers.host}/v1/getLog/${uuid}` //todo
+			report: `http://sd-d38a-3c1a:9000`,
 		},
 		errCode: -1
 	}));	
 
 
-	download(branch).then(function(){
+	download().then(function(){
 		copyNodeModules();
 		test().then(function(){
 
-
-
-
-			
-
-
-			//todo
 			setTimeout(function(){
-				//# send report
-				//# trigger sonar service.
-				UploadService.uploadUtil(uuid);	
+				generateReport();
+				runScanner();
 			}, 5000);
-			
-
-
-
-
-
-
 		});
-	}, function(e){throw new Error('in reject');}).catch(function(e){console.log(e);})
-
-	//is test machine return at once? yes. you are correct.
+	}, function(e){throw new Error('in reject');}).catch(function(e){logger.error(e.stack);})
 }
+
+function generateReport(){
+	logger.info('Start to convert report.');
+
+	try{
+		var istanbul = require('istanbul');
+		var collector = new istanbul.Collector();
+		var Report = istanbul.Report;
+		var SonarReport = require('./sonar_reporter.js');
+		Report.register(SonarReport);
+
+		var path = `codebase/rfq-web.git_${uuid}/coverage/coverage-final.json`;
+		var jsonReport = fs.readFileSync(path).toString();
+		var coverage = JSON.parse(jsonReport);
+
+		collector.add(coverage);
+
+		var dir = `codebase/rfq-web.git_${uuid}/`;
+		var sonarReport = new SonarReport({dir: dir});
+		sonarReport.writeReport(collector, true);
+	}catch(e){
+		logger.error('fail to convert sonar coverage report.');
+		logger.error(e.stack);
+	}
+}
+
+function runScanner(){
+	logger.info('Start to run scanner.');
+
+	var path = require('path').join(process.cwd(), `codebase/rfq-web.git_${uuid}`);
+
+	const spawnSync = child.spawnSync;
+	const bat = spawnSync('cmd.exe', [
+		'/c', 
+		'sonar-scanner.bat'
+	],{
+		cwd: path
+	});
+
+	if(bat.stdout){
+		logger.info(bat.stdout.toString());	
+	}
+
+
+	if(bat.stderr){
+		logger.error(bat.stderr.toString());	
+	}
+
+
+	if(bat.status != 0){
+		logger.info('Run scanner fail.');
+	}else{
+		logger.info('Run scanner successfully.');	
+	}
+	
+}
+
 function copyNodeModules(){
 	const NODE_MODULES_PATH_SRC = 'asset/node_modules';
 	const NODE_MODULES_PATH_DESC = `codebase/rfq-web.git_${uuid}`;
-
 
 	var commands = [
 		`cp -r ${NODE_MODULES_PATH_SRC} ${NODE_MODULES_PATH_DESC}`
@@ -80,13 +117,12 @@ function copyNodeModules(){
 	child.execSync(commands, function (err) {logger.error(err.stack)});
 
 }
-function download(_branch){
-	var branch = _branch || DEFAULT_BRANCH ;
+function download(){
 	var path = `codebase/rfq-web.git_${uuid}`;
 
 	var options = {
 	  // Remote source location (no github sources)
-	  source: 'ssh://git@cedt-icg-bitbucketcli.nam.nsroot.net:7999/rfq/rfq-web.git',
+	  source: REPO,
 	  // Destination for exploded files from downloaded tar file
 	  dest: path,
 	  // Branch and folder path to include, such as 'master:lib'

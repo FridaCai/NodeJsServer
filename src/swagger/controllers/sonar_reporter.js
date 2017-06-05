@@ -125,7 +125,7 @@ Report.mix(SonarReport, {
         return 'XML coverage report that can be consumed by the cobertura tool';
     },
     getDefaultConfig: function () {
-        return { file: 'sonar_report/sonar-coverage.xml' };
+        return { file: 'sonar-coverage.xml' };
     },
     writeReport: function (collector, sync) {
         var FW = require('istanbul').FileWriter;
